@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ポケモンクイズ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    #options button {
+      margin: 10px;
+      width: 120px;
+      height: 150px;
+      display: inline-block;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    #options img {
+      width: 80px;
+      height: 80px;
+      display: block;
+      margin: 0 auto 5px;
+    }
+    #options span {
+      display: block;
+      color: black;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+<main class="container">
+  <h1>鳴き声でポケモンクイズ！</h1>
+  <button id="playCry">鳴き声を再生</button>
+  <div id="options"></div>
+  <div id="result" style="margin-top: 20px; font-size: 1.2em;"></div>
+</main>
+
+<script>
+async function getPokemonData(id) {
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  const data = await res.json();
+  const speciesRes = await fetch(data.species.url);
+  const speciesData = await speciesRes.json();
+  const nameJaObj = speciesData.names.find(n => n.language.name === 'ja');
+  const nameJa = nameJaObj ? nameJaObj.name : data.name;
+  const cryUrl = `https://play.pokemonshowdown.com/audio/cries/${data.name}.mp3`;
+  return {
+    id: id,
+    name: nameJa,
+    cry: cryUrl,
+    image: data.sprites.front_default
+  };
+}
+
+async function generateQuiz() {
+  // 正解ポケモン
+  const correctId = Math.floor(Math.random() * 898) + 1;
+  const correctPokemon = await getPokemonData(correctId);
+
+  // 選択肢3つ＋正解
+  let options = [correctPokemon];
+  while (options.length < 4) {
+    const id = Math.floor(Math.random() * 898) + 1;
+    if (!options.find(p => p.id === id)) {
+      options.push(await getPokemonData(id));
+    }
+  }
+
+  // シャッフル
+  options = options.sort(() => Math.random() - 0.5);
+
+  const optionsDiv = document.getElementById('options');
+  optionsDiv.innerHTML = '';
+  options.forEach(p => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `<img src="${p.image}" alt="${p.name}"><span>${p.name}</span>`;
+    btn.onclick = () => {
+      const resultDiv = document.getElementById('result');
+      if (p.id === correctPokemon.id) {
+        resultDiv.textContent = '正解！🎉';
+      } else {
+        resultDiv.textContent = `不正解… 正解は ${correctPokemon.name} です。`;
+      }
+    };
+    
+    optionsDiv.appendChild(btn);
+  });
+
+  // 鳴き声再生
+  const playBtn = document.getElementById('playCry');
+  playBtn.onclick = () => {
+    const audio = new Audio(correctPokemon.cry);
+    audio.play();
+  };
+}
+
+generateQuiz();
+</script>
+</body>
+</html>

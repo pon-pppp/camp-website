@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>今日のポケモン</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    #pokemon {
+      width: 300px;
+    }
+
+    #pokemonImage {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<main class="container">
+  <h1>今日のポケモン</h1>
+  
+  <div id="pokemon">
+    <h2 id="pokemonName"></h2>
+    <img id="pokemonImage" src="">
+    <button id="cryButton" style="margin-top:10px;">鳴き声を聞く</button>
+    <audio id="pokemonCry"></audio>
+  </div>
+</main>
+
+<script>
+  let pokemonName = document.getElementById('pokemonName');
+  let pokemonImage = document.getElementById('pokemonImage');
+  let pokemonCry = document.getElementById('pokemonCry');
+  let cryButton = document.getElementById('cryButton');
+
+  let pokemonNumber = Math.floor(Math.random() * 898) + 1;
+
+  // まず基本データを取得
+  fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonNumber}`)
+    .then(res => res.json())
+    .then(data => {
+      // 画像表示
+      pokemonImage.src = data.sprites.front_default;
+
+      // 鳴き声URLを設定
+      if (data.cries && data.cries.latest) {
+        pokemonCry.src = data.cries.latest;
+        cryButton.disabled = false;
+      } else {
+        cryButton.disabled = true;
+        cryButton.textContent = "鳴き声データなし";
+      }
+
+      // 次に日本語名を species API から取得
+      return fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonNumber}`);
+    })
+    .then(res => res.json())
+    .then(speciesData => {
+      // names 配列から日本語(カタカナ)を探す
+      let jaName = speciesData.names.find(n => n.language.name === "ja-Hrkt");
+      pokemonName.textContent = jaName ? jaName.name : "不明なポケモン";
+    })
+    .catch(err => {
+      console.error("エラーが発生しました:", err);
+    });
+
+  // ボタンを押したときに鳴き声を再生
+  cryButton.addEventListener("click", () => {
+    pokemonCry.play().catch(err => {
+      console.error("再生エラー:", err);
+    });
+  });
+</script>
+
+</body>
+</html>
